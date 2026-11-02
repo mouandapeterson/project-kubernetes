@@ -132,7 +132,7 @@ Un fichier par objet Kubernetes dans `base/`. Chaque overlay ne contient que ce 
 ### Lancement
 
 ```powershell
-git clone https://github.com/<votre-utilisateur>/project-kubernetes.git
+git clone https://github.com/mouandapeterson/project-kubernetes.git
 cd project-kubernetes
 vagrant up                 # crée la VM, installe Docker, Minikube et kubectl, démarre le cluster
 vagrant rsync-auto         # dans un terminal dédié : synchronisation Windows -> VM
@@ -396,4 +396,5 @@ vagrant destroy -f
 
 ## Auteur
 
-**<Votre nom>** · [LinkedIn](https://www.linkedin.com/in/<votre-profil>) · [GitHub](https://github.com/<votre-utilisateur>)
+**Peterson MOUANDA** · Ingénieur DevOps
+ [LinkedIn](https://www.linkedin.com/in/peterson-mouanda/) · [GitHub](https://github.com/mouandapeterson)

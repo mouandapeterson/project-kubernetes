@@ -1,0 +1,81 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wp-deploy
+  labels:
+    app: wordpress
+    tier: frontend
+spec:
+  replicas: 1
+  # Recreate : un seul pod à la fois sur le volume hostPath
+  strategy:
+    type: Recreate
+    rollingUpdate: null   # nécessaire pour passer d'un Deployment existant en RollingUpdate à Recreate
+  selector:
+    matchLabels:
+      app: wordpress
+      tier: frontend
+  template:
+    metadata:
+      labels:
+        app: wordpress
+        tier: frontend
+    spec:
+      containers:
+      - name: wordpress
+        # PHP 8.3 maintenu (l'ancienne image 5.7.2-php7.4 provoquait l'alerte PHP obsolète)
+        image: wordpress:php8.3-apache
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: WORDPRESS_DB_HOST
+          value: mysql-svc
+        - name: WORDPRESS_DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: wp-secret
+              key: username
+        - name: WORDPRESS_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: wp-secret
+              key: password
+        # Lu dans le Secret au lieu d'être écrit en dur : une seule valeur à maintenir
+        - name: WORDPRESS_DB_NAME
+          valueFrom:
+            secretKeyRef:
+              name: wp-secret
+              key: database
+        ports:
+        - containerPort: 80
+          name: wordpress
+        # Prêt seulement si WordPress répond (une erreur de base renvoie 500)
+        readinessProbe:
+          httpGet:
+            path: /wp-login.php
+            port: wordpress
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 6
+        livenessProbe:
+          tcpSocket:
+            port: wordpress
+          initialDelaySeconds: 60
+          periodSeconds: 20
+          timeoutSeconds: 5
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        volumeMounts:
+        - name: wordpress-persistent-storage
+          mountPath: /var/www/html
+      volumes:
+      - name: wordpress-persistent-storage
+        hostPath:
+          path: /data/wordpress
+          type: DirectoryOrCreate

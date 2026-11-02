@@ -1,0 +1,81 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql-deployment
+  labels:
+    app: mysql
+    tier: database
+spec:
+  replicas: 1
+  # Recreate : l'ancien pod s'arrête avant le démarrage du nouveau.
+  # Deux MySQL ne doivent jamais écrire en même temps dans /data/mysql (volume RWO).
+  strategy:
+    type: Recreate
+    rollingUpdate: null   # nécessaire pour passer d'un Deployment existant en RollingUpdate à Recreate
+  selector:
+    matchLabels:
+      app: mysql
+      tier: database
+  template:
+    metadata:
+      labels:
+        app: mysql
+        tier: database
+    spec:
+      containers:
+      - name: mysql
+        image: mysql:5.7
+        env:
+        # Mot de passe root distinct de celui de l'utilisateur applicatif
+        - name: MYSQL_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: root-password
+        - name: MYSQL_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: database
+        - name: MYSQL_USER
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: username
+        - name: MYSQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mysql-secret
+              key: password
+        ports:
+        - containerPort: 3306
+          name: mysql
+        # Prêt seulement quand MySQL répond
+        readinessProbe:
+          exec:
+            command: ["mysqladmin", "ping", "-h", "127.0.0.1"]
+          initialDelaySeconds: 20
+          periodSeconds: 10
+          timeoutSeconds: 5
+        # Redémarré si le port 3306 ne répond plus
+        livenessProbe:
+          tcpSocket:
+            port: mysql
+          initialDelaySeconds: 60
+          periodSeconds: 20
+          timeoutSeconds: 5
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        volumeMounts:
+        - name: mysql-persistent-storage
+          mountPath: /var/lib/mysql
+      volumes:
+      - name: mysql-persistent-storage
+        persistentVolumeClaim:
+          claimName: mysql-pvc

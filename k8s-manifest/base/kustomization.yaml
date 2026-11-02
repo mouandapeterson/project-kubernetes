@@ -1,0 +1,27 @@
+# Base commune à tous les environnements : les manifests, sans aucun Secret.
+# Les Secrets sont générés par chaque overlay (secretGenerator).
+# Ne pas appliquer la base seule : utiliser overlays/dev ou overlays/prod.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - mysql/mysql-pv.yml
+  - mysql/mysql-pvc.yml
+  - mysql/mysql-deploy.yml
+  - mysql/mysql-svc.yml
+  - wordpress/wp-deploy.yml
+  - wordpress/wp-svc.yml
+
+# Labels communs. includeSelectors: false -> les selectors (immuables) ne sont pas modifiés.
+labels:
+  - pairs:
+      project: wordpress-k8s
+      managed-by: kustomize
+    includeSelectors: false
+
+# Versions par défaut des images (surchargées si besoin par un overlay)
+images:
+  - name: wordpress
+    newTag: php8.3-apache
+  - name: mysql
+    newTag: "5.7"

@@ -1,0 +1,19 @@
+---
+# Accès depuis Windows : http://192.168.56.10:30007
+# nodePort dans la plage 30000-30010 publiée par Minikube (MINIKUBE_PORTS du Vagrantfile)
+apiVersion: v1
+kind: Service
+metadata:
+  name: wp-svc
+  labels:
+    app: wordpress
+    tier: frontend
+spec:
+  type: NodePort
+  selector:
+    app: wordpress
+    tier: frontend
+  ports:
+    - port: 80
+      targetPort: 80
+      nodePort: 30007

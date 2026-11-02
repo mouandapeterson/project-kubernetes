@@ -1,0 +1,99 @@
+# Environnement de production (simulé sur le même cluster Minikube) :
+# namespace dédié, image figée, ressources plus élevées, données et port séparés.
+#   kubectl apply -k overlays/prod
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: wordpress-prod
+
+resources:
+  - namespace.yml
+  - ../../base
+
+labels:
+  - pairs:
+      env: prod
+    includeSelectors: false
+
+secretGenerator:
+  - name: mysql-secret
+    envs:
+      - mysql.env
+  - name: wp-secret
+    envs:
+      - wp.env
+
+# Version précise de WordPress en prod (vérifiez les tags sur hub.docker.com/_/wordpress)
+images:
+  - name: wordpress
+    newTag: 6.8.3-php8.3-apache
+
+patches:
+  # Le PV n'appartient à aucun namespace : il lui faut un nom et un dossier
+  # distincts de ceux de dev, sinon les deux environnements partageraient la base.
+  - target:
+      kind: PersistentVolume
+      name: mysql-pv
+    patch: |-
+      - op: replace
+        path: /metadata/name
+        value: mysql-pv-prod
+      - op: replace
+        path: /spec/hostPath/path
+        value: /data/prod/mysql
+      - op: add
+        path: /spec/hostPath/type
+        value: DirectoryOrCreate
+
+  # Le PVC de prod ne peut se lier qu'au PV portant le label env=prod
+  - target:
+      kind: PersistentVolumeClaim
+      name: mysql-pvc
+    patch: |-
+      - op: add
+        path: /spec/selector
+        value:
+          matchLabels:
+            env: prod
+
+  # Ressources MySQL plus élevées
+  - target:
+      kind: Deployment
+      name: mysql-deployment
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            memory: 512Mi
+            cpu: 250m
+          limits:
+            memory: 1Gi
+            cpu: "1"
+
+  # WordPress : ressources plus élevées et dossier de données séparé
+  - target:
+      kind: Deployment
+      name: wp-deploy
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            memory: 512Mi
+            cpu: 250m
+          limits:
+            memory: 1Gi
+            cpu: "1"
+      - op: replace
+        path: /spec/template/spec/volumes/0/hostPath/path
+        value: /data/prod/wordpress
+
+  # Port distinct de dev (30007), toujours dans la plage publiée par Minikube
+  - target:
+      kind: Service
+      name: wp-svc
+    patch: |-
+      - op: replace
+        path: /spec/ports/0/nodePort
+        value: 30008

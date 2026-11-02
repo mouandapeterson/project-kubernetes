@@ -1,0 +1,24 @@
+# Environnement de développement : identique au déploiement actuel.
+# Namespace default, NodePort 30007, données dans /data/mysql et /data/wordpress.
+#   kubectl apply -k overlays/dev
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+labels:
+  - pairs:
+      env: dev
+    includeSelectors: false
+
+# Secrets générés depuis des fichiers .env (exclus de Git).
+# Kustomize ajoute un suffixe unique au nom (ex. mysql-secret-7g2k9f) et met à jour
+# les références des Deployments : un changement de mot de passe redémarre les pods.
+secretGenerator:
+  - name: mysql-secret
+    envs:
+      - mysql.env
+  - name: wp-secret
+    envs:
+      - wp.env

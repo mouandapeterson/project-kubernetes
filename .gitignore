@@ -1,0 +1,17 @@
+# Vagrant
+.vagrant/
+*.log
+
+# Secrets réels : seuls les modèles *.env.example sont versionnés
+k8s-manifest/**/*.env
+k8s-manifest/**/*secret*.yml
+k8s-manifest/**/*secret*.yaml
+
+# Fichiers système
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Éditeurs
+.vscode/
+.idea/

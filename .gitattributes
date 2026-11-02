@@ -1,0 +1,12 @@
+# Fins de ligne Unix pour tout ce qui s'exécute ou se lit dans la VM,
+# même si le dépôt est cloné sous Windows
+*.sh        text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+*.example   text eol=lf
+Vagrantfile text eol=lf
+*.md        text eol=lf
+
+# Fichiers binaires
+*.png binary
+*.jpg binary
